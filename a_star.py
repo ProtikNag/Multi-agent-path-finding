@@ -3,8 +3,8 @@ import time
 import os
 import csv
 
-# Constants for movement in 4 directions (up, down, left, right, wait)
-DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
+# Constants for movement in 4 directions (wait, up, down, left, right)
+DIRECTIONS = [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]
 
 
 def heuristic(a, b):

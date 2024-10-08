@@ -2,6 +2,8 @@ import heapq
 import time
 import os
 import csv
+import random
+import numpy as np
 
 # Constants for movement in 4 directions (up, down, left, right, wait)
 DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
@@ -12,8 +14,8 @@ def heuristic(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 
-def a_star(grid, start, goal, blocked_cells):
-    """A* algorithm to find the shortest path from start to goal considering already blocked cells."""
+def a_star(grid, start, goal, blocked_cells, agent_paths):
+    """A* algorithm to find the shortest path, considering blocked cells and proximity to other agents."""
     rows, cols = len(grid), len(grid[0])
     open_list = []
     heapq.heappush(open_list, (0 + heuristic(start, goal), 0, start))  # (f, g, position)
@@ -33,9 +35,17 @@ def a_star(grid, start, goal, blocked_cells):
 
         for direction in DIRECTIONS:
             neighbor = (current[0] + direction[0], current[1] + direction[1])
-            if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor[0]][
-                neighbor[1]] == '.' and neighbor not in blocked_cells:
+            if 0 <= neighbor[0] < rows and 0 <= neighbor[1] < cols and grid[neighbor[0]][neighbor[1]] == '.' and neighbor not in blocked_cells:
                 tentative_g = current_g + 1
+
+                # Proximity penalty: Add a cost if neighbor is close to already planned paths
+                proximity_penalty = 0
+                for path in agent_paths:
+                    if neighbor in path or any(heuristic(neighbor, step) <= 1 for step in path):
+                        proximity_penalty += 5  # Adjust the penalty based on how strict you want it
+
+                tentative_g += proximity_penalty
+
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     g_score[neighbor] = tentative_g
                     f_score = tentative_g + heuristic(neighbor, goal)
@@ -43,27 +53,6 @@ def a_star(grid, start, goal, blocked_cells):
                     came_from[neighbor] = current
 
     return None  # No path found
-
-
-def read_file(file_path):
-    """Read a test file and extract the grid and agent data."""
-    with open(file_path, 'r') as f:
-        lines = f.readlines()
-
-    # Parse the grid size
-    rows, cols = map(int, lines[0].split())
-
-    # Parse the grid
-    grid = [list(line.strip().split()) for line in lines[1:rows + 1]]
-
-    # Parse the agents
-    num_agents = int(lines[rows + 1].strip())
-    agents = []
-    for line in lines[rows + 2:rows + 2 + num_agents]:
-        sx, sy, gx, gy = map(int, line.split())
-        agents.append(((sx, sy), (gx, gy)))
-
-    return grid, agents
 
 
 def simulate_execution_with_collisions(agent_paths):
@@ -93,17 +82,60 @@ def simulate_execution_with_collisions(agent_paths):
 
 
 def prioritized_planning(grid, agents):
-    """Prioritized planning: plan paths for agents one by one in priority order."""
+    """Prioritized planning: plan paths for agents, check for collisions, and insert wait actions if necessary."""
     agent_paths = []
+    blocked_cells = set()
 
+    # Calculate distances for priority assignment
+    agents_with_distances = []
     for start, goal in agents:
-        path = a_star(grid, start, goal, set())  # Plan each path without blocking based on higher priority agents
+        distance = heuristic(start, goal)
+        agents_with_distances.append((distance, start, goal))
+
+    # Sort agents by the calculated distance (shorter distance gets higher priority)
+    agents_with_distances.sort(key=lambda x: x[0])
+
+    # Plan paths in priority order
+    for _, start, goal in agents_with_distances:
+        # Plan path while considering already blocked cells and agent paths
+        path = a_star(grid, start, goal, blocked_cells, agent_paths)
+
         if path is not None:
-            agent_paths.append(path)
+            # Check for potential future collisions with previously planned paths
+            if simulate_execution_with_collisions([path] + agent_paths) == 0:
+                agent_paths.append(path)
+                # Add the planned path to blocked cells to avoid collisions for future agents
+                blocked_cells.update(path)
+            else:
+                # Insert a wait action if collision is detected
+                path.append(path[-1])  # Add wait at the final position to avoid collision
+                agent_paths.append(path)
+                blocked_cells.update(path)
         else:
-            agent_paths.append([])  # Mark as failure for now
+            agent_paths.append([])  # Mark as failure if no path found
 
     return agent_paths
+
+
+def read_file(file_path):
+    """Read a test file and extract the grid and agent data."""
+    with open(file_path, 'r') as f:
+        lines = f.readlines()
+
+    # Parse the grid size
+    rows, cols = map(int, lines[0].split())
+
+    # Parse the grid
+    grid = [list(line.strip().split()) for line in lines[1:rows + 1]]
+
+    # Parse the agents
+    num_agents = int(lines[rows + 1].strip())
+    agents = []
+    for line in lines[rows + 2:rows + 2 + num_agents]:
+        sx, sy, gx, gy = map(int, line.split())
+        agents.append(((sx, sy), (gx, gy)))
+
+    return grid, agents
 
 
 def process_files_with_collisions(data_folder):
