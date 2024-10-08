@@ -4,6 +4,7 @@ import os
 import csv
 import random
 import numpy as np
+from tqdm import tqdm
 
 # Constants for movement in 4 directions (up, down, left, right, wait)
 DIRECTIONS = [(-1, 0), (1, 0), (0, -1), (0, 1), (0, 0)]
@@ -141,7 +142,7 @@ def read_file(file_path):
 def process_files_with_collisions(data_folder):
     results = []
 
-    for file_name in os.listdir(data_folder):
+    for file_name in tqdm(os.listdir(data_folder)):
         if file_name.endswith(".txt"):
             file_path = os.path.join(data_folder, file_name)
             grid, agents = read_file(file_path)
