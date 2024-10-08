@@ -4,8 +4,8 @@ import os
 
 # Constants
 rows, cols = 20, 20  # Grid size
-min_agents, max_agents = 2, 4  # Number of agents
-blocked_ratio = 0.01  # Percentage of blocked cells
+min_agents, max_agents = 2, 15  # Number of agents
+blocked_ratio = 0.3  # Percentage of blocked cells
 
 # Create Data Folder if it doesn't exist
 os.makedirs("./Data", exist_ok=True)
@@ -75,7 +75,7 @@ def save_to_file(grid, agents, file_path):
             f.write(f"{sx} {sy} {gx} {gy}\n")
 
 
-num_files = 10
+num_files = 1000
 
 for i in range(1, num_files + 1):
     grid = generate_grid(rows, cols, blocked_ratio)
