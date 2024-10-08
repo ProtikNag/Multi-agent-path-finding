@@ -11,6 +11,11 @@ priority_data = priority_data.sort_values('Num_Agents')
 a_star_data = a_star_data.sort_values('Num_Agents')
 cbs_data = cbs_data.sort_values('Num_Agents')
 
+# Increase font sizes for the plots
+font = {'size': 16}
+
+plt.rc('font', **font)
+
 # Create a line plot comparing Average Time Taken across three approaches
 plt.figure(figsize=(10, 6))
 plt.plot(priority_data['Num_Agents'], priority_data['Average_Time_Taken'], label='Priority Planning', marker='o')
@@ -38,4 +43,3 @@ plt.grid(True)
 plt.savefig('./Figures/Collisions_Comparison.pdf')
 plt.savefig('./Figures/Collisions_Comparison.png')
 plt.show()
-
